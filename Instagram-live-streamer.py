@@ -3,7 +3,7 @@ import urllib.request
 from datetime import datetime
 from tkinter import Tk
 from tkinter.filedialog import askopenfilename
-if not(ctypes.windll.shell32.IsUserAnAdmin()) : ctypes.windll.shell32.ShellExecuteW(None, "runas", sys.executable, __file__, None, 1)
+
 
 
 
@@ -112,10 +112,8 @@ def generateUUID(dashes=True):
         return "1c9bd518-002e-421b-8d38-5705a95c5a05"
     else:
         return "1c9bd518-002e-421b-8d38-5705a95c5a05".replace("-","")
+    
 
-
-
-os.system("copy .\ffmpeg.exe C:\\windows\\system32\\")
 
 
 
@@ -131,18 +129,34 @@ except ImportError:
 
 USERNAME = input("Your username?\t")
 PASSWORD = input("Your password?\t")
-TYPE = input("Direct streaming or streaming from file?(d\\f)\t").lower()
-if TYPE not in ("f","d"):
-    print("Only f or d\nTerminating...")
+TYPE = input("Using 3rd party programs for streaming or Want to stream a video file?(1\\2)\t")
+if TYPE not in ("1","2"):
+    print("Only 1 or 2\nTerminating...")
     sys.exit()
-if TYPE== "f":
+if TYPE== "2":
     Tk().withdraw()
     FILE_PATH = askopenfilename()
-PUBLISH_TO_LIVE_FEED = False
-SEND_NOTIFICATIONS = False
+
+if input("Publish to live feed or not?(y\\n)") in ("y","Y"):
+    PUBLISH_TO_LIVE_FEED = True
+else:
+    PUBLISH_TO_LIVE_FEED = False
+
+if input("Send notifications or not?(y\\n)") in ("y","Y"):
+    SEND_NOTIFICATIONS = True
+else:
+    SEND_NOTIFICATIONS = False
+
+
 
 api = InstagramAPI(USERNAME, PASSWORD, debug=False)
-assert api.login()
+
+if not(api.login()):
+    if api.LastJson['message'] == "challenge_required":
+        print("Apparently your machine is banned from accessing instagram.com\nCheck https://www.instagram.com/challenge/ to solve the problem\nTerminating ...")
+        sys.exit()
+    print("Invalid Credentials\nTerminating...")
+    sys.exit()
 
 
 assert createBroadcast(api)
@@ -151,89 +165,56 @@ upload_url = api.LastJson['upload_url']
 
 
 assert startBroadcast(api,broadcast_id)
-if TYPE== "f":
-    comment = input("Your Comment? ")
+if TYPE== "2":
     #Commented By Torabi
 	#ffmpeg_cmd = "ffmpeg.exe -rtbufsize 256M -re -i \"{file}\" -acodec libmp3lame -ar 44100 -b:a 128k -pix_fmt yuv420p -profile:v baseline -s 720x1280 -bufsize 6000k -vb 400k -maxrate 1500k -deinterlace -vcodec libx264 -preset veryfast -g 30 -r 30 -f flv \"{stream_url}\"".format(
     ffmpeg_cmd = "ffmpeg.exe -rtbufsize 256M -re -i \"{file}\" -acodec libmp3lame -ar 44100 -b:a 128k -pix_fmt yuv420p -profile:v baseline -s 720x1280 -vf transpose=1 -bufsize 6000k -vb 400k -maxrate 1500k -deinterlace -vcodec libx264 -preset veryfast -g 30 -r 30 -f flv \"{stream_url}\"".format(
     file=FILE_PATH,
-    stream_url=upload_url.replace(':443', ':80', ).replace('rtmps://', 'rtmp://'),
+    stream_url=upload_url.replace("rtmps","rtmps").replace("443","443"),
     )
-    postCommentBroadcast(api,broadcast_id,comment)
-    comment_id = api.LastResponse.json()['comment']['pk']
-    pinComment(api,broadcast_id,comment_id)
-if TYPE=="d":
-    print(upload_url.replace(':443', ':80', ).replace('rtmps://', 'rtmp://'))
+    #postCommentBroadcast(api,broadcast_id,comment)
+    #comment_id = api.LastResponse.json()['comment']['pk']
+    #pinComment(api,broadcast_id,comment_id)
+elif TYPE=="1":
+    print(upload_url)
 print("Hit Ctrl+C to stop broadcast")
 try:
-    if TYPE=="f":
-        output = subprocess.check_output(ffmpeg_cmd,shell = True)
-        #os.system(ffmpeg_cmd)
-        #for i in output.stdout:
-            #print(i)
-        while True:
-            act = input("1.send comment\n2.block user\n3.get comments\n4.mute comments\n5.unmute comments\n")
+    if TYPE=="2":
+        os.system(ffmpeg_cmd)
+        print(ffmpeg_cmd)
+    while True:
+        act = input("1.send comment\n2.block user\n3.get comments\n4.mute comments\n5.unmute comments\n")
 
-            if   act=="1":
-                postCommentBroadcast(api,broadcast_id,input("Comment: "))
-                comment_id = api.LastResponse.json()['comment']['pk']
-                pinComment(api,broadcast_id,comment_id)
-            elif act=="2":
-                user_id = getUserId(input("Username: "))
-                api.block(user_id)
-            elif act=="3":
-                try:
-                    num = int(input("how many? "))
-                except:
-                    print("thats not a valid number\ntry again")
-                    continue
-                getComments(api,broadcast_id,commentsRequested=num)
-                raw_comments = api.LastResponse.json()['comments']
-                comments = list()
-                for comment in raw_comments:
-                    comments.append((comment['text'] , comment['user']['username'], comment['pk']))
-                for comment in comments:
-                    print("{}:{}\t<{}>".format( comment[1] , comment[0] , comment[2] ))
-            elif act=="4":
-                muteComments(api,broadcast_id)
-            elif act=="5":
-                unmuteComments(api,broadcast_id)
-            else:
+        if act=="1":
+            postCommentBroadcast(api,broadcast_id,input("Comment: "))
+            comment_id = api.LastResponse.json()['comment']['pk']
+            pinComment(api,broadcast_id,comment_id)
+        elif act=="2":
+            user_id = getUserId(input("Username: "))
+            api.block(user_id)
+        elif act=="3":
+            try:
+                num = int(input("how many? "))
+            except:
+                print("thats not a valid number\ntry again")
                 continue
-            #print(getComments(api,broadcast_id))
-            
-
-            #print(api.LastResponse.json())
-    else:
-        while True:
-            act = input("1.send comment\n2.block user\n3.get comments\n4.mute comments\n5.unmute comments\n")
-
-            if   act=="1":
-                postCommentBroadcast(api,broadcast_id,input("Comment: "))
-                comment_id = api.LastResponse.json()['comment']['pk']
-                pinComment(api,broadcast_id,comment_id)
-            elif act=="2":
-                user_id = getUserId(input("Username: "))
-                api.block(user_id)
-            elif act=="3":
-                try:
-                    num = int(input("how many? "))
-                except:
-                    print("thats not a valid number\ntry again")
-                    continue
-                getComments(api,broadcast_id,commentsRequested=num)
-                raw_comments = api.LastResponse.json()['comments']
-                comments = list()
-                for comment in raw_comments:
-                    comments.append((comment['text'] , comment['user']['username'], comment['pk']))
-                for comment in comments:
-                    print("{}:{}\t<{}>".format( comment[1] , comment[0] , comment[2] ))
-            elif act=="4":
-                muteComments(api,broadcast_id)
-            elif act=="5":
-                unmuteComments(api,broadcast_id)
-            else:
+            getComments(api,broadcast_id,commentsRequested=num)
+            if api.LastResponse.status_code >= 400:
+                print("Error while retrieving comments")
                 continue
+            raw_comments = api.LastResponse.json()['comments']
+            comments = list()
+            for comment in raw_comments:
+                comments.append((comment['text'] , comment['user']['username'], comment['pk']))
+            for comment in comments:
+                print("{}:{}\t<{}>".format( comment[1] , comment[0] , comment[2] ))
+        elif act=="4":
+            muteComments(api,broadcast_id)
+        elif act=="5":
+            unmuteComments(api,broadcast_id)
+        else:
+            continue
+
 except KeyboardInterrupt:
     print('Stop Broadcasting')
 
@@ -242,7 +223,6 @@ assert stopBroadcast(api,broadcast_id)
 print('Finished Broadcast')
 
 if PUBLISH_TO_LIVE_FEED:
-    a = addBroadcastToFeed(api,broadcast_id)
-    print(a)
-print('Added Broadcast to LiveFeed')
+    addBroadcastToFeed(api,broadcast_id)
+    print('Added Broadcast to LiveFeed')
 input()
