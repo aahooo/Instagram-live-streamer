@@ -168,7 +168,7 @@ assert startBroadcast(api,broadcast_id)
 if TYPE== "2":
     #Commented By Torabi
 	#ffmpeg_cmd = "ffmpeg.exe -rtbufsize 256M -re -i \"{file}\" -acodec libmp3lame -ar 44100 -b:a 128k -pix_fmt yuv420p -profile:v baseline -s 720x1280 -bufsize 6000k -vb 400k -maxrate 1500k -deinterlace -vcodec libx264 -preset veryfast -g 30 -r 30 -f flv \"{stream_url}\"".format(
-    ffmpeg_cmd = "ffmpeg.exe -rtbufsize 256M -re -i \"{file}\" -acodec libmp3lame -ar 44100 -b:a 128k -pix_fmt yuv420p -profile:v baseline -s 720x1280 -vf transpose=1 -bufsize 6000k -vb 400k -maxrate 1500k -deinterlace -vcodec libx264 -preset veryfast -g 30 -r 30 -f flv \"{stream_url}\"".format(
+    ffmpeg_cmd = "ffmpeg.exe -rtbufsize 256M -threads 1 -re -i \"{file}\" -acodec libmp3lame -ar 44100 -b:a 128k -pix_fmt yuv420p -profile:v baseline -s 720x1280 -vf transpose=1 -bufsize 6000k -vb 400k -maxrate 1500k -deinterlace -vcodec libx264 -preset veryfast -g 30 -r 30 -f flv \"{stream_url}\"".format(
     file=FILE_PATH,
     stream_url=upload_url.replace("rtmps","rtmps").replace("443","443"),
     )
